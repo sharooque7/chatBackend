@@ -1,0 +1,387 @@
+[33mcommit 5af8cfe392394ad872c19be5cbc5c048f49ad1d0[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31mheroku/master[m[33m)[m
+Author: Sharooque7 <sharooquethoufiq@gmail.com>
+Date:   Sun Nov 14 16:38:12 2021 +0530
+
+    first commit backend
+
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..7af7f04[m
+[1m--- /dev/null[m
+[1m+++ b/.gitignore[m
+[36m@@ -0,0 +1,2 @@[m
+[32m+[m[32m/node_modules[m
+[32m+[m[32m.env[m
+\ No newline at end of file[m
+[1mdiff --git a/app.js b/app.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..6cc9542[m
+[1m--- /dev/null[m
+[1m+++ b/app.js[m
+[36m@@ -0,0 +1,31 @@[m
+[32m+[m[32mrequire("dotenv").config();[m
+[32m+[m[32mconst express = require("express");[m
+[32m+[m[32mconst cors = require("cors");[m
+[32m+[m[32mconst mongoose = require("mongoose");[m
+[32m+[m
+[32m+[m[32mconst PORT = process.env.PORT || 5000;[m
+[32m+[m[32mconst MONGODB_URL = process.env.MONGO_URL;[m
+[32m+[m[32mconst app = express();[m
+[32m+[m[32mapp.use(cors());[m
+[32m+[m
+[32m+[m[32mapp.use(express.json());[m
+[32m+[m
+[32m+[m[32mconst conversationRoutes = require("./routes/conversation");[m
+[32m+[m[32mconst MessageRoutes = require("./routes/messages");[m
+[32m+[m[32mconst usersRoutes = require("./routes/users");[m
+[32m+[m
+[32m+[m[32mapp.use("/api/conversation", conversationRoutes);[m
+[32m+[m[32mapp.use("/api/message", MessageRoutes);[m
+[32m+[m[32mapp.use("/api/users", usersRoutes);[m
+[32m+[m[32mapp.use("/", (req, res) => {[m
+[32m+[m[32m  res.send("Hi");[m
+[32m+[m[32m});[m
+[32m+[m[32mmongoose.connect([m
+[32m+[m[32m  MONGODB_URL,[m
+[32m+[m[32m  { useNewUrlParser: true, useUnifiedTopology: true },[m
+[32m+[m[32m  () => {[m
+[32m+[m[32m    app.listen(PORT, () => {[m
+[32m+[m[32m      console.log(`Api Runing on ${PORT}`);[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m[32m);[m
+[1mdiff --git a/controller/conversation.js b/controller/conversation.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..5c693dd[m
+[1m--- /dev/null[m
+[1m+++ b/controller/conversation.js[m
+[36m@@ -0,0 +1,38 @@[m
+[32m+[m[32mconst Conversation = require("../models/Conversation");[m
+[32m+[m[32mconst newConversation = async (req, res, next) => {[m
+[32m+[m[32m  console.log(req.body);[m
+[32m+[m[32m  const newConversation = new Conversation({[m
+[32m+[m[32m    members: [req.body.senderId, req.body.receiverId],[m
+[32m+[m[32m  });[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const savedConversation = await newConversation.save();[m
+[32m+[m[32m    res.status(200).json(savedConversation);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst getConversation = async (req, res, next) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const conversation = await Conversation.find({[m
+[32m+[m[32m      members: { $in: [req.params.userId] },[m
+[32m+[m[32m    });[m
+[32m+[m[32m    res.status(200).json(conversation);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst getAllcovo = async (req, res) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const conversation = await Conversation.findOne({[m
+[32m+[m[32m      members: { $all: [req.params.firstUserId, req.params.secondUserId] },[m
+[32m+[m[32m    });[m
+[32m+[m[32m    console.log(conversation);[m
+[32m+[m[32m    res.status(200).json(conversation);[m
+[32m+[m[32m  } catch (err) {[m
+[32m+[m[32m    res.status(500).json(err);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mmodule.exports = { newConversation, getConversation, getAllcovo };[m
+[1mdiff --git a/controller/message.js b/controller/message.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..bb3f30b[m
+[1m--- /dev/null[m
+[1m+++ b/controller/message.js[m
+[36m@@ -0,0 +1,23 @@[m
+[32m+[m[32mconst MessageModel = require("../models/Message");[m
+[32m+[m[32mconst addMessage = async (req, res, next) => {[m
+[32m+[m[32m  const newMessge = new MessageModel(req.body);[m
+[32m+[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const Message = await newMessge.save();[m
+[32m+[m[32m    res.status(200).json(Message);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst getMessage = async (req, res, next) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const messages = await MessageModel.find({[m
+[32m+[m[32m      conversationId: req.params.conversationId,[m
+[32m+[m[32m    });[m
+[32m+[m[32m    res.status(200).json(messages);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m[32mmodule.exports = { addMessage, getMessage };[m
+[1mdiff --git a/controller/users.js b/controller/users.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..b5f75ae[m
+[1m--- /dev/null[m
+[1m+++ b/controller/users.js[m
+[36m@@ -0,0 +1,60 @@[m
+[32m+[m[32mconst UserModel = require("../models/User");[m
+[32m+[m[32mconst bcrypt = require("bcryptjs");[m
+[32m+[m[32mconst jwt = require("jsonwebtoken");[m
+[32m+[m
+[32m+[m[32mconst register = async (req, res, next) => {[m
+[32m+[m[32m  console.log(req.body);[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const salt = await bcrypt.genSalt(10);[m
+[32m+[m[32m    req.body.password = await bcrypt.hash(req.body.password, salt);[m
+[32m+[m[32m    console.log(req.body);[m
+[32m+[m[32m    const user = new UserModel(req.body);[m
+[32m+[m[32m    const data = await user.save();[m
+[32m+[m[32m    res.status(200).json(data);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json("Something went wrong");[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst login = async (req, res, next) => {[m
+[32m+[m[32m  const { email, password } = req.body;[m
+[32m+[m[32m  //   console.log(req.body);[m
+[32m+[m[32m  //   console.log(email, password);[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const user = await UserModel.findOne({ email: email });[m
+[32m+[m[32m    !user && res.status(404).json("user not found");[m
+[32m+[m
+[32m+[m[32m    const validPassword = await bcrypt.compare(password, user.password);[m
+[32m+[m[32m    console.log(validPassword);[m
+[32m+[m
+[32m+[m[32m    !validPassword && res.status(400).json("wrong password");[m
+[32m+[m
+[32m+[m[32m    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {[m
+[32m+[m[32m      expiresIn: "1h",[m
+[32m+[m[32m    });[m
+[32m+[m
+[32m+[m[32m    res.status(200).json({ user, token: token });[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst getAllUsers = async (req, res, next) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const user = await UserModel.find();[m
+[32m+[m[32m    res.status(200).json(user);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst Authtesting = (req, res, next) => {[m
+[32m+[m[32m  console.log(req.body);[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    res.status(200).json("hello");[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    res.status(500).json(error);[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mmodule.exports = { register, login, getAllUsers, Authtesting };[m
+[1mdiff --git a/middlewares/auth.js b/middlewares/auth.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..d5f8bfc[m
+[1m--- /dev/null[m
+[1m+++ b/middlewares/auth.js[m
+[36m@@ -0,0 +1,27 @@[m
+[32m+[m[32mconst jwt = require("jsonwebtoken");[m
+[32m+[m
+[32m+[m[32mmodule.exports = (req, res, next) => {[m
+[32m+[m[32m  const authHeader = req.get("Authorization");[m
+[32m+[m[32m  const secretKey = process.env.JWT_SECRET;[m
+[32m+[m[32m  if (!authHeader) {[m
+[32m+[m[32m    const error = new Error("Not authenticated");[m
+[32m+[m[32m    error.statusCode = 401;[m
+[32m+[m[32m    throw error;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  const token = authHeader.split(" ")[1];[m
+[32m+[m[32m  let decodedToken;[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    decodedToken = jwt.verify(token, secretKey);[m
+[32m+[m[32m    console.log(decodedToken);[m
+[32m+[m[32m  } catch (err) {[m
+[32m+[m[32m    err.statusCode = 500;[m
+[32m+[m[32m    throw err;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  if (!decodedToken) {[m
+[32m+[m[32m    const error = new Error("Not authenticated");[m
+[32m+[m[32m    error.statusCode = 401;[m
+[32m+[m[32m    throw error;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  req.userId = decodedToken.userId;[m
+[32m+[m[32m  next();[m
+[32m+[m[32m};[m
+[1mdiff --git a/models/Conversation.js b/models/Conversation.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..aa83fa4[m
+[1m--- /dev/null[m
+[1m+++ b/models/Conversation.js[m
+[36m@@ -0,0 +1,10 @@[m
+[32m+[m[32mconst mongoose = require("mongoose");[m
+[32m+[m[32mconst ConversationSchema = new mongoose.Schema([m
+[32m+[m[32m  {[m
+[32m+[m[32m    members: {[m
+[32m+[m[32m      type: Array,[m
+[32m+[m[32m    },[m
+[32m+[m[32m  },[m
+[32m+[m[32m  { timestamps: true }[m
+[32m+[m[32m);[m
+[32m+[m[32mmodule.exports = mongoose.model("Conversation", ConversationSchema);[m
+[1mdiff --git a/models/Message.js b/models/Message.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..aef2235[m
+[1m--- /dev/null[m
+[1m+++ b/models/Message.js[m
+[36m@@ -0,0 +1,14 @@[m
+[32m+[m[32mconst mongoose = require("mongoose");[m
+[32m+[m[32mconst MessageSchema = new mongoose.Schema([m
+[32m+[m[32m  {[m
+[32m+[m[32m    conversationId: {[m
+[32m+[m[32m      type: String,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    sender: {[m
+[32m+[m[32m      type: String,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    text: { type: String },[m
+[32m+[m[32m  },[m
+[32m+[m[32m  { timestamps: true }[m
+[32m+[m[32m);[m
+[32m+[m[32mmodule.exports = mongoose.model("Message", MessageSchema);[m
+[1mdiff --git a/models/User.js b/models/User.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..fe2f0af[m
+[1m--- /dev/null[m
+[1m+++ b/models/User.js[m
+[36m@@ -0,0 +1,31 @@[m
+[32m+[m[32mconst mongoose = require("mongoose");[m
+[32m+[m
+[32m+[m[32mconst UserSchema = new mongoose.Schema([m
+[32m+[m[32m  {[m
+[32m+[m[32m    username: {[m
+[32m+[m[32m      type: String,[m
+[32m+[m[32m      min: 3,[m
+[32m+[m[32m      max: 20,[m
+[32m+[m[32m      unique: true,[m
+[32m+[m[32m      require: true,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    email: {[m
+[32m+[m[32m      type: String,[m
+[32m+[m[32m      require: true,[m
+[32m+[m[32m      max: 50,[m
+[32m+[m[32m      unique: true,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    password: {[m
+[32m+[m[32m      type: String,[m
+[32m+[m[32m      required: true,[m
+[32m+[m[32m      min: 6,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    // profilePicture: {[m
+[32m+[m[32m    //   type: String,[m
+[32m+[m[32m    //   default: "",[m
+[32m+[m[32m    // },[m
+[32m+[m[32m  },[m
+[32m+[m[32m  { timestamps: true }[m
+[32m+[m[32m);[m
+[32m+[m
+[32m+[m[32mmodule.exports = mongoose.model("Auth", UserSchema);[m
+[1mdiff --git a/package-lock.json b/package-lock.json[m
+[1mnew file mode 100644[m
+[1mindex 0000000..7f73802[m
+[1m--- /dev/null[m
+[1m+++ b/package-lock.json[m
+[36m@@ -0,0 +1,3815 @@[m
+[32m+[m[32m{[m
+[32m+[m[32m  "name": "messengerbackend",[m
+[32m+[m[32m  "version": "1.0.0",[m
+[32m+[m[32m  "lockfileVersion": 2,[m
+[32m+[m[32m  "requires": true,[m
+[32m+[m[32m  "packages": {[m
+[32m+[m[32m    "": {[m
+[32m+[m[32m      "name": "messengerbackend",[m
+[32m+[m[32m      "version": "1.0.0",[m
+[32m+[m[32m      "license": "ISC",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "bcryptjs": "^2.4.3",[m
+[32m+[m[32m        "cors": "^2.8.5",[m
+[32m+[m[32m        "dotenv": "^10.0.0",[m
+[32m+[m[32m        "express": "^4.17.1",[m
+[32m+[m[32m        "jsonwebtoken": "^8.5.1",[m
+[32m+[m[32m        "mongoose": "^6.0.12"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "devDependencies": {[m
+[32m+[m[32m        "nodemon": "^2.0.14"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@sindresorhus/is": {[m
+[32m+[m[32m      "version": "0.14.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@sindresorhus/is/-/is-0.14.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-9NET910DNaIPngYnLLPeg+Ogzqsi9uM4mSboU5y6p8S5DzMTVEsJZrawi+BoDNUVBa2DhJqQYUFvMDfgU062LQ==",[m
+[32m+[m[32m      "dev": true,[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=6"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@szmarczak/http-timer": {[m
+[32m+[m[32m      "version": "1.1.2",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@szmarczak/http-timer/-/http-timer-1.1.2.tgz",[m
+[32m+[m[32m      "integrity": "sha512-XIB2XbzHTN6ieIjfIMV9hlVcfPU26s2vafYWQcZHWXHOxiaRZYEDKEwdl129Zyg50+foYV2jCgtrqSA6qNuNSA==",[m
+[32m+[m[32m      "dev": true,[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "defer-to-connect": "^1.0.1"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=6"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@types/node": {[m
+[32m+[m[32m      "version": "16.11.7",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@types/node/-/node-16.11.7.tgz",[m
+[32m+[m[32m      "integrity": "sha512-QB5D2sqfSjCmTuWcBWyJ+/44bcjO7VbjSbOE0ucoVbAsSNQc4Lt6QkgkVXkTDwkL4z/beecZNDvVX15D4P8Jbw=="[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@types/webidl-conversions": {[m
+[32m+[m[32m      "version": "6.1.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@types/webidl-conversions/-/webidl-conversions-6.1.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-XAahCdThVuCFDQLT7R7Pk/vqeObFNL3YqRyFZg+AqAP/W1/w3xHaIxuW7WszQqTbIBOPRcItYJIou3i/mppu3Q=="[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@types/whatwg-url": {[m
+[32m+[m[32m      "version": "8.2.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@types/whatwg-url/-/whatwg-url-8.2.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-2YubE1sjj5ifxievI5Ge1sckb9k/Er66HyR2c+3+I6VDUUg1TLPdYYTEbQ+DjRkS4nTxMJhgWfSfMRD2sl2EYQ==",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/node": "*",[m
+[32m+[m[32m        "@types/webidl-conversions": "*"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/abbrev": {[m
+[32m+[m[32m      "version": "1.1.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/abbrev/-/abbrev-1.1.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==",[m
+[32m+[m[32m      "dev": true[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/accepts": {[m
+[32m+[m[32m      "version": "1.3.7",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/accepts/-/accepts-1.3.7.tgz",[m
+[32m+[m[32m      "integrity": "sha512-Il80Qs2WjYlJIBNzNkK6KYqlVMTbZLXgHx2oT0pU/fjRHyEp+PEfEPY0R3WCwAGVOtauxh1hOxNgIf5bv7dQpA==",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "mime-types": "~2.1.24",[m
+[32m+[m[32m        "negotiator": "0.6.2"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">= 0.6"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/ansi-align": {[m
+[32m+[m[32m      "version": "3.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/ansi-align/-/ansi-align-3.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-IOfwwBF5iczOjp/WeY4YxyjqAFMQo
